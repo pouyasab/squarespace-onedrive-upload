@@ -9,66 +9,73 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  try {
+    // CORS headers – MÅ være inne i try-blokken for å nås
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).send("Kun POST-støtte");
-  }
-
-  const form = formidable({}); // ✅ riktig måte i Formidable v3+
-
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error("Formidable-feil:", err);
-      return res.status(500).send("Feil ved parsing");
+    if (req.method === "OPTIONS") {
+      return res.status(200).end();
     }
 
-    const file = files.file;
-    if (!file) {
-      return res.status(400).send("Ingen fil mottatt");
+    if (req.method !== "POST") {
+      return res.status(405).send("Kun POST-støtte");
     }
 
-    const stream = fs.createReadStream(file.filepath);
-    const filename = file.originalFilename;
+    const form = formidable({});
 
-    try {
-      const tokenRes = await axios.post(
-        `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`,
-        new URLSearchParams({
-          client_id: process.env.CLIENT_ID,
-          client_secret: process.env.CLIENT_SECRET,
-          scope: "https://graph.microsoft.com/.default",
-          grant_type: "client_credentials"
-        }),
-        {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" }
-        }
-      );
+    form.parse(req, async (err, fields, files) => {
+      if (err) {
+        console.error("Formidable-feil:", err);
+        return res.status(500).send("Feil ved parsing");
+      }
 
-      const token = tokenRes.data.access_token;
+      const file = files.file;
+      if (!file) {
+        return res.status(400).send("Ingen fil mottatt");
+      }
 
-      await axios.put(
-        `https://graph.microsoft.com/v1.0/me/drive/root:/Uploads/${filename}:/content`,
-        stream,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": file.mimetype
+      const stream = fs.createReadStream(file.filepath);
+      const filename = file.originalFilename;
+
+      try {
+        const tokenRes = await axios.post(
+          `https://login.microsoftonline.com/${process.env.TENANT_ID}/oauth2/v2.0/token`,
+          new URLSearchParams({
+            client_id: process.env.CLIENT_ID,
+            client_secret: process.env.CLIENT_SECRET,
+            scope: "https://graph.microsoft.com/.default",
+            grant_type: "client_credentials"
+          }),
+          {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
           }
-        }
-      );
+        );
 
-      return res.status(200).send("Fil lastet opp til OneDrive!");
-    } catch (error) {
-      console.error("Opplasting-feil:", error.response?.data || error.message);
-      return res.status(500).send("Feil under opplasting");
-    }
-  });
+        const token = tokenRes.data.access_token;
+
+        await axios.put(
+          `https://graph.microsoft.com/v1.0/me/drive/root:/Uploads/${filename}:/content`,
+          stream,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": file.mimetype
+            }
+          }
+        );
+
+        return res.status(200).send("Fil lastet opp til OneDrive!");
+      } catch (error) {
+        console.error("Opplasting-feil:", error.response?.data || error.message);
+        return res.status(500).send("Feil under opplasting");
+      }
+    });
+  } catch (err) {
+    // 👇 Dette fanges hvis noe går galt før form.parse
+    console.error("Fatal-feil:", err);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    return res.status(500).send("Uventet feil");
+  }
 }
