@@ -9,13 +9,14 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // Legg til CORS headere
+  // 🔧 CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  // ✅ Preflight request
   if (req.method === "OPTIONS") {
-    return res.status(200).end(); // svar på preflight request
+    return res.status(200).end();
   }
 
   if (req.method !== "POST") {
