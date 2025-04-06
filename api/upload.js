@@ -9,30 +9,23 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // resten av koden uendret...
-}
-
-
-const fs = require('fs');
-const axios = require('axios');
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).send("Kun POST støttes");
+    return res.status(405).send("Kun POST-støtte");
   }
 
   const form = new formidable.IncomingForm();
 
   form.parse(req, async (err, fields, files) => {
-    if (err) return res.status(500).send("Feil ved parsing");
+    if (err) {
+      console.error("Formidable-feil:", err);
+      return res.status(500).send("Feil ved parsing");
+    }
 
     const file = files.file;
+    if (!file) {
+      return res.status(400).send("Ingen fil mottatt");
+    }
+
     const stream = fs.createReadStream(file.filepath);
     const filename = file.originalFilename;
 
@@ -45,7 +38,9 @@ export default async function handler(req, res) {
           scope: "https://graph.microsoft.com/.default",
           grant_type: "client_credentials"
         }),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        }
       );
 
       const token = tokenRes.data.access_token;
@@ -56,15 +51,15 @@ export default async function handler(req, res) {
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": file.mimetype,
-          },
+            "Content-Type": file.mimetype
+          }
         }
       );
 
-      res.status(200).send("Fil lastet opp!");
-    } catch (e) {
-      console.error(e.response?.data || e.message);
-      res.status(500).send("Feil under opplasting");
+      return res.status(200).send("Fil lastet opp til OneDrive!");
+    } catch (error) {
+      console.error("Opplasting-feil:", error.response?.data || error.message);
+      return res.status(500).send("Feil under opplasting");
     }
   });
 }
