@@ -9,12 +9,11 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  // 🔧 CORS headers
+  // CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Preflight request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -23,7 +22,7 @@ export default async function handler(req, res) {
     return res.status(405).send("Kun POST-støtte");
   }
 
-  const form = new formidable.IncomingForm();
+  const form = formidable({}); // ✅ riktig måte i Formidable v3+
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
