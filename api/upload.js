@@ -1,3 +1,18 @@
+import formidable from 'formidable';
+import fs from 'fs';
+import axios from 'axios';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default async function handler(req, res) {
+  // resten av koden uendret...
+}
+
+
 const formidable = require('formidable');
 const fs = require('fs');
 const axios = require('axios');
