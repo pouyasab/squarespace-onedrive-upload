@@ -13,7 +13,6 @@ export default async function handler(req, res) {
 }
 
 
-const formidable = require('formidable');
 const fs = require('fs');
 const axios = require('axios');
 
